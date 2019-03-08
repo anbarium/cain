@@ -24,6 +24,22 @@ func GetFromAndToPathsFromK8s(iClient interface{}, pods []string, namespace, con
 	return fromToPathsAllPods, nil
 }
 
+// GetIncFromAndToPathsFromK8s aggregates paths from all pods
+func GetIncFromAndToPathsFromK8s(iClient interface{}, pods []string, namespace, container, keyspace, tag, dstBasePath, cassandraDataDir string) ([]skbn.FromToPair, error) {
+	k8sClient := iClient.(*skbn.K8sClient)
+	var fromToPathsAllPods []skbn.FromToPair
+	for _, pod := range pods {
+
+		fromToPaths, err := GeIncFromAndToPathsK8sToDst(k8sClient, namespace, pod, container, keyspace, tag, dstBasePath, cassandraDataDir)
+		if err != nil {
+			return nil, err
+		}
+		fromToPathsAllPods = append(fromToPathsAllPods, fromToPaths...)
+	}
+
+	return fromToPathsAllPods, nil
+}
+
 // GetFromAndToPathsSrcToK8s performs a path mapping between a source and Kubernetes
 func GetFromAndToPathsSrcToK8s(srcClient, k8sClient interface{}, srcPrefix, srcPath, srcBasePath, namespace, container, cassandraDataDir string) ([]skbn.FromToPair, []string, []string, error) {
 	var fromToPaths []skbn.FromToPair
@@ -85,6 +101,38 @@ func GetFromAndToPathsK8sToDst(k8sClient interface{}, namespace, pod, container,
 	return fromToPaths, nil
 }
 
+// GeIncFromAndToPathsK8sToDst performs a path mapping between Kubernetes and a destination
+func GeIncFromAndToPathsK8sToDst(k8sClient interface{}, namespace, pod, container, keyspace, tag, dstBasePath, cassandraDataDir string) ([]skbn.FromToPair, error) {
+	var fromToPaths []skbn.FromToPair
+
+	pathPrfx := filepath.Join(namespace, pod, container, cassandraDataDir)
+
+	keyspacePath := filepath.Join(pathPrfx, keyspace)
+	tablesRelativePaths, err := skbn.GetListOfFilesFromK8s(k8sClient, keyspacePath, "d", "backups")
+	if err != nil {
+		return nil, err
+	}
+
+	for _, tableRelativePath := range tablesRelativePaths {
+
+		tablePath := filepath.Join(keyspacePath, tableRelativePath)
+		filesToCopyRelativePaths, err := skbn.GetListOfFilesFromK8s(k8sClient, tablePath, "f", "*")
+		if err != nil {
+			return nil, err
+		}
+
+		for _, fileToCopyRelativePath := range filesToCopyRelativePaths {
+
+			fromPath := filepath.Join(tablePath, fileToCopyRelativePath)
+			toPath := PathIncFromK8sToDst(fromPath, cassandraDataDir, tag, dstBasePath)
+
+			fromToPaths = append(fromToPaths, skbn.FromToPair{FromPath: fromPath, ToPath: toPath})
+		}
+	}
+
+	return fromToPaths, nil
+}
+
 // PathFromK8sToDst maps a single path from Kubernetes to destination
 func PathFromK8sToDst(k8sPath, cassandraDataDir, dstBasePath string) string {
 	k8sPath = strings.Replace(k8sPath, cassandraDataDir, "", 1)
@@ -98,6 +146,24 @@ func PathFromK8sToDst(k8sPath, cassandraDataDir, dstBasePath string) string {
 	// 5 = snapshots
 	tag := pSplit[6]
 	file := pSplit[7]
+
+	table := strings.Split(tableWithHash, "-")[0]
+
+	return filepath.Join(dstBasePath, tag, pod, table, file)
+}
+
+// PathIncFromK8sToDst maps a single path from Kubernetes to destination
+func PathIncFromK8sToDst(k8sPath, cassandraDataDir, tag, dstBasePath string) string {
+	k8sPath = strings.Replace(k8sPath, cassandraDataDir, "", 1)
+	pSplit := strings.Split(k8sPath, "/")
+
+	// 0 = namespace
+	pod := pSplit[1]
+	// 2 = container
+	// 3 = keyspace
+	tableWithHash := pSplit[4]
+	// 5 = backups
+	file := pSplit[6]
 
 	table := strings.Split(tableWithHash, "-")[0]
 

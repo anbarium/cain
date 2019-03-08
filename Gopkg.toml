@@ -1,6 +1,12 @@
 [[constraint]]
   name = "github.com/nuvo/skbn"
-  version = "0.4.2"
+  source = "https://github.com/elastx/skbn.git"
+  branch = "master"
+
+[[constraint]]
+  name = "github.com/nuvo/cain"
+  source = "https://github.com/elastx/cain.git"
+  branch = "master"
 
 [[constraint]]
   name = "github.com/spf13/cobra"
