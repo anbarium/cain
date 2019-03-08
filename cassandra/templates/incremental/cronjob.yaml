@@ -1,0 +1,73 @@
+{{- if .Values.incremental.enabled }}
+{{- $release := .Release }}
+{{- $values := .Values }}
+{{- $incremental := $values.incremental }}
+{{- range $index, $schedule := $incremental.schedule }}
+---
+apiVersion: batch/v1beta1
+kind: CronJob
+metadata:
+  name: {{ template "cassandra.fullname" $ }}-incremental-{{ $schedule.keyspace }}
+  labels:
+    app: {{ template "cassandra.name" $ }}-cain
+    chart: {{ template "cassandra.chart" $ }}
+    release: "{{ $release.Name }}"
+    heritage: "{{ $release.Service }}"
+spec:
+  schedule: {{ $schedule.cron | quote }}
+  concurrencyPolicy: Forbid
+  startingDeadlineSeconds: 120
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          annotations:
+            {{ toYaml $incremental.annotations }}
+        spec:
+          restartPolicy: OnFailure
+          serviceAccountName: {{ template "cassandra.serviceAccountName" $ }}
+          containers:
+          - name: cassandra-incremental
+            image: "{{ $incremental.image.repos }}:{{ $incremental.image.tag }}"
+            command: ["cain"]
+            args:
+            - incremental
+            - --namespace
+            - {{ $release.Namespace }}
+            - --selector
+            - release={{ $release.Name }},app={{ template "cassandra.name" $ }}
+            - --keyspace
+            - {{ $schedule.keyspace }}
+            - --dst
+            - {{ $incremental.destination }}
+            {{- with $incremental.extraArgs }}
+{{ toYaml . | indent 12 }}
+          {{- end }}
+          {{- with $incremental.env }}
+            env:
+{{ toYaml . | indent 12 }}
+          {{- end }}
+          {{- with $incremental.resources }}
+            resources:
+{{ toYaml . | indent 14 }}
+          {{- end }}
+        affinity:
+          podAffinity:
+            preferredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                  - {{ template "cassandra.fullname" $ }}
+                - key: release
+                  operator: In
+                  values:
+                  - {{ $release.Name }}
+              topologyKey: "kubernetes.io/hostname"
+      {{- with $values.tolerations }}
+        tolerations:
+{{ toYaml . | indent 10 }}
+      {{- end }}
+{{- end }}
+{{- end }}

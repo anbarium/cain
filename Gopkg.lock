@@ -197,28 +197,36 @@
   version = "1.0.1"
 
 [[projects]]
-  digest = "1:f15ddb763c37d54554e39edd5073dd6a721e8560d73e934ad94305b8a0461c90"
+  digest = "1:079f066487b2ea83d1e9ac178686489bda450ae9b7e4aab6a6f4b21b93a61185"
+  name = "github.com/ncw/swift"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "ba19fe35e796969e50f19bd748a770ec5d191ece"
+  version = "v1.0.44"
+
+[[projects]]
+  branch = "master"
+  digest = "1:87e6110cab41c2c8c30497ee6f488b04eb33a8626bac585aed263753ba1661ca"
   name = "github.com/nuvo/cain"
   packages = [
     "pkg/cain",
     "pkg/utils",
   ]
   pruneopts = "UT"
-  revision = "be0e30d2f2492dde912a165603005b4de2fb7cdc"
+  revision = "485d99e91e6e33fa61c04d78baf00fa9283ddfc2"
   source = "https://github.com/elastx/cain.git"
-  version = "0.5.1"
 
 [[projects]]
-  digest = "1:0afbbd82a14657dbe53e816648bd4e76e8267b9bac030851500055baca6f90c5"
+  branch = "master"
+  digest = "1:7f29061853830948898395f14f905a4965766c251558236380ebaba13a2bb171"
   name = "github.com/nuvo/skbn"
   packages = [
     "pkg/skbn",
     "pkg/utils",
   ]
   pruneopts = "UT"
-  revision = "f3f8aee53f67faa4d0337f7fd2406d5f265bb4f3"
+  revision = "091ae0d459e5e7430ea7269fe2a7096e3e3a3d30"
   source = "https://github.com/elastx/skbn.git"
-  version = "0.4.2"
 
 [[projects]]
   branch = "master"
